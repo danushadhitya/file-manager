@@ -5,11 +5,14 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from datetime import datetime
+from functools import wraps
 
 load_dotenv()
 AWS_ACCESS_KEY=os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_KEY=os.getenv("AWS_SECRET_ACCESS_KEY")
 S3_BUCKET= os.getenv("S3_BUCKET_NAME")
+API_KEY=os.getenv("API_KEY")
+
 
 app=Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///files.db"
@@ -19,14 +22,20 @@ db= SQLAlchemy(app)
 endpoint_url="http://localhost:4566"
 client=boto3.client("s3",endpoint_url=endpoint_url,aws_access_key_id=AWS_ACCESS_KEY,aws_secret_access_key=AWS_SECRET_KEY)
 
+def check_auth(f):
+    @wraps(f)
+    def func(*args,**kwargs):
+        auth_header=request.headers.get('X-API-KEY')
+        if not auth_header or auth_header != API_KEY:
+            return {"Error":"Unauthorized"},401
+        return f(*args,**kwargs)
+    return func        
+
 class File(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     filename= db.Column(db.String(30),nullable=False)
     status= db.Column(db.String(20),nullable=False)
     date_created= db.Column(db.DateTime,default=datetime.utcnow)
-
-with app.app_context():
-    db.create_all()
 
 @app.errorhandler(413)
 def request_entity_too_large(error):
@@ -36,11 +45,22 @@ def request_entity_too_large(error):
 def index():
     return "Hello World"
 
-@app.route('/list',methods=['GET'])
+@app.route('/api/list',methods=['GET'])
+@check_auth
 def list():
     if request.method == 'GET':
+        page=request.args.get('page',default=1,type=int)
+        per_page=request.args.get('per_page',default=10,type=int)
+        if page<1:
+            page=1
+        if per_page < 1 or per_page > 20:
+            per_page=10    
         try:
-            files=File.query.order_by(File.date_created).all()
+            subset=File.query.order_by(File.date_created).paginate(
+                page=page,
+                per_page=per_page,
+                error_out=False
+            )
             result=[
                 {
                     "id":f.id,
@@ -48,14 +68,21 @@ def list():
                     "status":f.status,
                     "date_created":f.date_created
                 }
-                for f in files
+                for f in subset.items
             ]
-            return jsonify(result),200
+            return jsonify({
+                "files":result,
+                "pagination":{
+                    "page":subset.page,
+                    "per_page":subset.per_page
+                }
+            }),200
         except Exception as e:
             return {"Error":str(e)},500
 
 
-@app.route('/download/<int:id>',methods=['GET'])
+@app.route('/api/download/<int:id>',methods=['GET'])
+@check_auth
 def download(id):
     if request.method == 'GET':
         try:
@@ -72,7 +99,8 @@ def download(id):
             return {"Error":str(e)},500
 
 
-@app.route('/delete/<int:id>',methods=['DELETE','POST'])
+@app.route('/api/delete/<int:id>',methods=['DELETE','POST'])
+@check_auth
 def delete(id):
     if request.method == 'DELETE':
         try:
@@ -84,7 +112,8 @@ def delete(id):
         except Exception as e:
             return {"Error":str(e)},500
 
-@app.route('/upload',methods=['POST'])
+@app.route('/api/upload',methods=['POST'])
+@check_auth
 def upload_file():
     if request.method == 'POST':
         file=request.files['file']
