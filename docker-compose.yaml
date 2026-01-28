@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:15
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    user: postgres  
+
+  localstack:
+    image: localstack/localstack
+    container_name: localstack
+    volumes:
+      - ./init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh
+    ports:
+      - "127.0.0.1:4566:4566"  
+    environment:
+      - S3_SKIP_SIGNATURE_VALIDATION=0
+
+  web:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      - db
+      - localstack
+    restart: on-failure  
+
+volumes:
+  postgres_data:     

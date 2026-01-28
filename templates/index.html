@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>File Manager</title>
+</head>
+<body>
+    <h1>File Manager</h1>
+    <div id="alert-container"></div>
+
+    <h2>Upload File</h2>
+    <form id="upload-form">
+        <label>API Key:</label><br>
+        <input type="text" id="api-key" placeholder="Enter your API key" required><br><br>
+        
+        <label>Select File (Max:16 MB):</label><br>
+        <input type="file" id="file-input" required><br><br>
+        
+        <button type="submit" id="upload-btn">Upload File</button>
+        <span id="upload-spinner" style="display:none;">Uploading...</span>
+    </form>
+    
+    <hr>
+    
+    <h2>Uploaded Files</h2>
+    <button onclick="loadFiles()">Refresh</button>
+    
+    <label>Items per page:</label>
+    <select id="items-per-page" onchange="loadFiles()">
+        <option value="5">5</option>
+        <option value="10" selected>10</option>
+        <option value="20">20</option>
+    </select>
+    
+    <div id="files-container">
+        <p>Loading files...</p>
+    </div>
+ 
+    <div id="pagination"></div>
+    
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
