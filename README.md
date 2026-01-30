@@ -148,13 +148,13 @@ curl -X GET http://localhost:8000/api/download/1 \
 
 Mark a file record as deleted in the database's status field and remove it from S3 bucket.
 
-**Endpoint**: `DELETE /api/files/<file_id>`
+**Endpoint**: `DELETE /api/delete/<file_id>`
 
 
 
 **cURL Example**:
 ```bash
-curl -X DELETE http://localhost:8000/api/files/1 \
+curl -X DELETE http://localhost:8000/api/delete/1 \
   -H "X-API-KEY: test-api-key"
 
 
