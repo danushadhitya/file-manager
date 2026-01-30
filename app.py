@@ -3,7 +3,6 @@ import boto3
 from flask import Flask, request, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
-from dotenv import load_dotenv
 from datetime import datetime
 from functools import wraps
 
@@ -12,10 +11,9 @@ AWS_ACCESS_KEY=os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_KEY=os.getenv("AWS_SECRET_ACCESS_KEY")
 S3_BUCKET= os.getenv("S3_BUCKET_NAME")
 API_KEY=os.getenv("API_KEY")
-
+ENDPOINT_URL=os.getenv('AWS_ENDPOINT_URL')
 
 app=Flask(__name__)
-#app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///files.db"
 app.config['SQLALCHEMY_DATABASE_URI'] = (
     f"postgresql://{os.getenv('POSTGRES_USER')}:"
     f"{os.getenv('POSTGRES_PASSWORD')}@db:5432/"
@@ -24,8 +22,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = (
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 db= SQLAlchemy(app)
-endpoint_url=os.getenv('AWS_ENDPOINT_URL')
-client=boto3.client("s3",endpoint_url=endpoint_url,aws_access_key_id=AWS_ACCESS_KEY,aws_secret_access_key=AWS_SECRET_KEY)
+
+client=boto3.client("s3",endpoint_url=ENDPOINT_URL,aws_access_key_id=AWS_ACCESS_KEY,aws_secret_access_key=AWS_SECRET_KEY)
 
 def check_auth(f):
     @wraps(f)
