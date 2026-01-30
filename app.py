@@ -93,6 +93,8 @@ def download(id):
     if request.method == 'GET':
         try:
             file=File.query.get_or_404(id)
+            if file.status=="DELETED":
+                return jsonify({"URL":"File does not exist"}),200 
             url=client.generate_presigned_url(
                 "get_object",
                 Params={"Bucket":S3_BUCKET,"Key":file.filename},
@@ -112,6 +114,8 @@ def delete(id):
     if request.method == 'DELETE':
         try:
             file=File.query.get_or_404(id)
+            if file.status=="DELETED":
+                return jsonify({"Message":"File deleted already"}),200
             deleteobj=client.delete_object(Bucket=S3_BUCKET,Key=file.filename)
             file.status="DELETED"
             db.session.commit()
